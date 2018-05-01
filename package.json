@@ -1,0 +1,25 @@
+{
+  "name": "Victor-Bot",
+  "version": "1.0.0",
+  "description": "Victor Bot",
+  "main": "app.js",
+  "author": "Victor Lee",
+  "license": "MIT",
+  "scripts": {
+    "start": "node app.js",
+    "lint": "jshint --exclude node_modules ."
+  },
+  "dependencies": {
+    "apiai": "^4.0.3",
+    "body-parser": "^1.18.2",
+    "config": "^1.30.0",
+    "dotenv": "^5.0.1",
+    "express": "^4.16.3",
+    "https": "^1.0.0",
+    "morgan": "^1.9.0",
+    "request": "^2.85.0"
+  },
+  "engines": {
+    "node": "~10.0.0"
+  }
+}
