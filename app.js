@@ -18,7 +18,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan("short"));
 app.use(express.static("public"));
 
-const WEATHER_API_KEY = process.env.WEATHER_API_KEY ? process.env.WEATHER_API_KEY : config.get("weatherApiKey")
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY
+  ? process.env.WEATHER_API_KEY
+  : config.get("weatherApiKey");
 
 const APP_SECRET = process.env.MESSENGER_APP_SECRET
   ? process.env.MESSENGER_APP_SECRET
@@ -115,26 +117,39 @@ function sendMessage(event) {
   api_ai.end();
 }
 
-app.post('/ai', (req, res) => {
-  if (req.body.result.action === 'weather') {
-    let city = req.body.result.parameters['geo-city'];
-    let restUrl = 'http://api.openweathermap.org/data/2.5/weather?APPID='+WEATHER_API_KEY+'&q='+city;
+app.post("/ai", (req, res) => {
+  if (req.body.result.action === "weather") {
+    let city = req.body.result.parameters["geo-city"];
+    let restUrl =
+      "http://api.openweathermap.org/data/2.5/weather?APPID=" +
+      WEATHER_API_KEY +
+      "&q=" +
+      city;
 
     request.get(restUrl, (err, response, body) => {
       if (!err && response.statusCode == 200) {
         let json = JSON.parse(body);
-        let msg = json.weather[0].description + ' and the temperature is ' + json.main.temp + ' ℉';
+        let msg =
+          json.weather[0].description +
+          " and the temperature is " +
+          json.main.temp +
+          " ℉";
         return res.json({
           speech: msg,
           displayText: msg,
-          source: 'weather'});
+          source: "weather"
+        });
       } else {
         return res.status(400).json({
           status: {
             code: 400,
-            errorType: 'I didn\'t manage to look up the city name.'}});
-      }})
+            errorType: "I didn't manage to look up the city name."
+          }
+        });
+      }
+    });
   }
+});
 
 const PORT = process.env.PORT || 5000;
 
