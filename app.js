@@ -6,11 +6,12 @@ const bodyParser = require("body-parser"),
   https = require("https"),
   morgan = require("morgan"),
   request = require("request");
+const apiai = require("apiai");
 
 const APIAI_TOKEN = process.env.APIAI_ACCESS_TOKEN
   ? process.env.APIAI_ACCESS_TOKEN
   : config.get("clientAccessToken");
-const apiAI = require("apiai")(APIAI_TOKEN);
+const apiaiApp = apiai(APIAI_TOKEN);
 
 const app = express();
 app.use(bodyParser.json());
@@ -51,45 +52,55 @@ if (
   process.exit(1);
 }
 
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(
+    `Express server listening to port ${PORT} in ${app.settings.env} mode`
+  );
+});
+
+/* For Facebook Validation */
 app.get("/webhook", (req, res) => {
   if (
-    req.query["hub.mode"] === "subscribe" &&
+    req.query["hub.mode"] &&
     req.query["hub.verify_token"] === VALIDATION_TOKEN
   ) {
-    console.log("Validating webhook");
     res.status(200).send(req.query["hub.challenge"]);
   } else {
-    console.error("Failed validation. Make sure the validation tokens match.");
-    res.sendStatus(403);
+    res.status(403).end();
   }
 });
 
+/* Handling all messenges */
 app.post("/webhook", (req, res) => {
   console.log(req.body);
-  //   let data = req.body;
   if (req.body.object === "page") {
     req.body.entry.forEach(entry => {
-      console.log(entry.id, entry.time);
       entry.messaging.forEach(event => {
         if (event.message && event.message.text) {
           sendMessage(event);
-        } else {
-          console.log("Webhook received unknown messagingEvent: ", event);
         }
       });
     });
-    res.sendStatus(200).send("Event received");
+    res.status(200).end();
   }
 });
+
+/* GET query from API.ai */
 
 function sendMessage(event) {
   let sender = event.sender.id;
   let text = event.message.text;
 
-  let api_ai = apiAi.textRequest(text, { sessionId: "scot_cat" });
+  let apiai = apiaiApp.textRequest(text, {
+    sessionId: "session_cat"
+  });
 
-  api_ai.on("response", response => {
+  apiai.on("response", response => {
+    console.log(response);
     let aiText = response.result.fulfillment.speech;
+
     request(
       {
         url: "https://graph.facebook.com/v2.6/me/messages",
@@ -110,15 +121,20 @@ function sendMessage(event) {
     );
   });
 
-  api_ai.on("error", error => {
+  apiai.on("error", error => {
     console.log(error);
   });
 
-  api_ai.end();
+  apiai.end();
 }
 
+/* Webhook for API.ai to get response from the 3rd party API */
 app.post("/ai", (req, res) => {
+  console.log("*** Webhook for api.ai query ***");
+  console.log(req.body.result);
+
   if (req.body.result.action === "weather") {
+    console.log("*** weather ***");
     let city = req.body.result.parameters["geo-city"];
     let restUrl =
       "http://api.openweathermap.org/data/2.5/weather?APPID=" +
@@ -129,32 +145,33 @@ app.post("/ai", (req, res) => {
     request.get(restUrl, (err, response, body) => {
       if (!err && response.statusCode == 200) {
         let json = JSON.parse(body);
+        console.log(json);
+        let tempF = ~~(json.main.temp * 9 / 5 - 459.67);
+        let tempC = ~~(json.main.temp - 273.15);
         let msg =
+          "The current condition in " +
+          json.name +
+          " is " +
           json.weather[0].description +
           " and the temperature is " +
-          json.main.temp +
-          " ℉";
+          tempF +
+          " ℉ (" +
+          tempC +
+          " ℃).";
         return res.json({
           speech: msg,
           displayText: msg,
           source: "weather"
         });
       } else {
+        let errorMessage = "I couldn't find the city name.";
         return res.status(400).json({
           status: {
             code: 400,
-            errorType: "I didn't manage to look up the city name."
+            errorType: errorMessage
           }
         });
       }
     });
   }
-});
-
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(
-    `Express server listening to port ${PORT} in ${app.settings.env} mode`
-  );
 });
