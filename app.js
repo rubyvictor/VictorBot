@@ -83,7 +83,7 @@ app.post("/webhook", (req, res) => {
         }
       });
     });
-    res.status(200);
+    res.status(200).end();
   }
 });
 
