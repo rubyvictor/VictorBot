@@ -1,3 +1,8 @@
+# INTRODUCTION
+Hello!  You have reached the GITHUB repository for my demo Victor Bot. It is a development project created solely for the practice and sharing of how to make a FaceBook Messenger Chatbot using Javascript React.js.  
+Thanks!
+
+
 # Privacy Policy of the Victor Bot Facebook app
 In order to receive information about your Personal Data, the purposes and the parties the Data is shared with, contact the Owner.
 
